@@ -1,0 +1,28 @@
+spring:
+  # 本机 PostgreSQL；账号密码可通过 DB_USER/DB_PASSWORD 环境变量覆盖。
+  application.name: mes-backend
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:postgres}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:}
+  jpa:
+    # 学习环境自动增量建表；生产环境请改用 Flyway/Liquibase。
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  data.redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+  rabbitmq:
+    host: ${MQ_HOST:localhost}
+    port: ${MQ_PORT:5672}
+    username: ${MQ_USER:mes}
+    password: ${MQ_PASSWORD:}
+server.port: 8080
+mes:
+  # 设备遥测接入端口，不与 Spring MVC HTTP 端口冲突。
+  netty.port: ${NETTY_PORT:9000}
+  mq.production-events: mes.production.events

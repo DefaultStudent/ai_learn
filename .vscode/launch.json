@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "MES Backend",
+            "request": "launch",
+            "mainClass": "com.example.mes.MesApplication",
+            "projectName": "mes-backend",
+            "cwd": "${workspaceFolder}/backend",
+            "vmArgs": "-Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8"
+        }
+    ]
+}

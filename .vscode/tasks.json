@@ -1,0 +1,31 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "MES: Start Backend",
+            "type": "shell",
+            "command": "mvn.cmd",
+            "args": ["spring-boot:run"],
+            "options": { "cwd": "${workspaceFolder}/backend" },
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": false }
+        },
+        {
+            "label": "MES: Build Backend",
+            "type": "shell",
+            "command": "mvn.cmd",
+            "args": ["-DskipTests", "package"],
+            "options": { "cwd": "${workspaceFolder}/backend" },
+            "problemMatcher": [],
+            "group": { "kind": "build", "isDefault": true }
+        },
+        {
+            "label": "MES: Start Docker Services",
+            "type": "shell",
+            "command": "docker",
+            "args": ["compose", "-f", "deploy/docker-compose.yml", "up", "-d"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": []
+        }
+    ]
+}

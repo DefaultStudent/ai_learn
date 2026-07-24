@@ -1,0 +1,29 @@
+services:
+  # Node.js 只存在于容器中，挂载源码后运行 Vite 开发服务器。
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    volumes:
+      - ../frontend:/app
+      - frontend-node-modules:/app/node_modules
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    ports: ["5173:5173"]
+  redis:
+    # 缓存服务，Spring Boot 通过 localhost:6379 访问宿主机映射端口。
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+  rabbitmq:
+    # 消息队列，同时暴露管理台 15672 方便学习观察消息。
+    image: rabbitmq:3.13-management-alpine
+    environment: { RABBITMQ_DEFAULT_USER: mes, RABBITMQ_DEFAULT_PASS: mes }
+    ports: ["5672:5672", "15672:15672"]
+  nginx:
+    # 统一入口：/api 转发到宿主机后端，其余请求转发到 frontend 容器。
+    image: nginx:1.27-alpine
+    depends_on: [frontend, redis, rabbitmq]
+    ports: ["80:80"]
+    volumes: ["./nginx/nginx.conf:/etc/nginx/nginx.conf:ro"]
+volumes:
+  frontend-node-modules:
