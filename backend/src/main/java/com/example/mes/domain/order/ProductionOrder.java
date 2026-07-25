@@ -31,17 +31,29 @@ public class ProductionOrder {
     @Column(nullable = false, length = 32)
     private String status = "CREATED";
 
+    /** JPA 使用的无参构造器。 */
     protected ProductionOrder() {}
 
+    /**
+     * 创建生产工单实体。
+     * @param orderNo 对外工单号
+     * @param productName 产品名称
+     * @param plannedQuantity 计划生产数量
+     */
     public ProductionOrder(String orderNo, String productName, Integer plannedQuantity) {
         this.orderNo = orderNo;
         this.productName = productName;
         this.plannedQuantity = plannedQuantity;
     }
 
+    /** @return 工单主键 */
     public Long getId() { return id; }
+    /** @return 工单号 */
     public String getOrderNo() { return orderNo; }
+    /** @return 产品名称 */
     public String getProductName() { return productName; }
+    /** @return 计划生产数量 */
     public Integer getPlannedQuantity() { return plannedQuantity; }
+    /** @return 工单状态 */
     public String getStatus() { return status; }
 }

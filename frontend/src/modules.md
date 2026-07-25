@@ -6,5 +6,4 @@
 
 ## orders / devices
 
-预留生产工单与设备管理页面；页面交互接入后端 `/api/orders` 和 `/api/devices`。
-
+生产工单页面仍预留；设备管理页面已接入后端 `/api/devices`，支持搜索、新增、状态切换和删除。

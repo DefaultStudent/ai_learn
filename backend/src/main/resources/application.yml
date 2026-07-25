@@ -22,6 +22,12 @@ spring:
     username: ${MQ_USER:mes}
     password: ${MQ_PASSWORD:}
 server.port: 8080
+logging:
+  # 具体输出格式和文件滚动由 log4j2-spring.xml 管理，这里只管理级别。
+  level:
+    com.example.mes: INFO
+    org.hibernate.SQL: WARN
+    org.springframework: INFO
 mes:
   # 设备遥测接入端口，不与 Spring MVC HTTP 端口冲突。
   netty.port: ${NETTY_PORT:9000}

@@ -46,6 +46,10 @@
 
 后端使用 Hibernate `ddl-auto: update`，首次启动会根据 `@Entity` 自动创建 `mes_device`、`mes_production_order` 等表，并保留已有数据。生产环境应改用 Flyway 或 Liquibase。
 
+## 后台日志
+
+后端使用 Log4j2 输出 UTF-8 控制台日志和滚动文件日志，文件默认写入 `backend/logs/mes-backend.log`。设备创建、更新、状态变更和删除等关键操作会通过 `SystemLogService` 写入 PostgreSQL 的 `mes_system_log` 表；该日志使用独立事务，业务回滚时仍保留审计记录。日志中禁止写入密码、Token 等敏感信息。
+
 ## 目录约定
 
 每个业务层与模块都带有自己的 `AGENTS.md`，其中记录职责、依赖方向、接口约定和扩展规则。修改代码前请先阅读所在目录及父目录的文档。

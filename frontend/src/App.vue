@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // 学习用单页入口：包含侧边导航、指标卡片、生产节拍和设备状态概览。
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { getDashboardSummary, type DashboardSummary } from "./api/dashboard";
+import DevicePanel from "./components/DevicePanel.vue";
 const active = ref("dashboard");
 const loading = ref(true);
 const summary = ref<DashboardSummary>({
@@ -9,18 +10,28 @@ const summary = ref<DashboardSummary>({
   onlineDevices: 0,
   todayOutput: 0,
   qualityRate: 0,
+  devices: [],
 });
+const statusDotClass = (status: string) => status === "ONLINE" ? "bg-emerald-500" : status === "IDLE" ? "bg-amber-500" : "bg-slate-400";
 const nav = [
   { key: "dashboard", label: "生产总览", icon: "▦" },
   { key: "orders", label: "生产工单", icon: "▤" },
   { key: "devices", label: "设备管理", icon: "◉" },
 ];
-onMounted(async () => {
+// 切换菜单时更新视图 key，确保页面分支和组件状态同步刷新。
+const selectNav = (key: string) => { active.value = key; };
+const loadSummary = async () => {
+  loading.value = true;
   try {
     summary.value = await getDashboardSummary();
   } finally {
     loading.value = false;
   }
+};
+onMounted(loadSummary);
+// 从设备管理返回生产总览时重新读取数据库，确保设备状态不是旧缓存。
+watch(active, (value) => {
+  if (value === "dashboard") loadSummary();
 });
 </script>
 <template>
@@ -43,7 +54,7 @@ onMounted(async () => {
         <button
           v-for="item in nav"
           :key="item.key"
-          @click="active = item.key"
+          @click="selectNav(item.key)"
           :class="
             active === item.key
               ? 'bg-indigo-50 text-indigo-700'
@@ -92,9 +103,10 @@ onMounted(async () => {
           </div>
         </div>
       </header>
-      <section class="space-y-7 p-6 lg:p-10">
+      <section :key="active" class="space-y-7 p-6 lg:p-10">
+        <DevicePanel v-if="active === 'devices'" />
         <div
-          v-if="active !== 'dashboard'"
+          v-else-if="active !== 'dashboard'"
           class="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500"
         >
           {{
@@ -187,29 +199,16 @@ onMounted(async () => {
             </div>
             <div class="rounded-2xl border border-slate-200 bg-white p-6">
               <h2 class="font-bold">设备状态</h2>
-              <div class="mt-6 space-y-5">
-                <div
-                  v-for="device in [
-                    { name: '冲压线 A-01', status: '运行中', color: 'emerald' },
-                    { name: '装配线 B-02', status: '待机', color: 'amber' },
-                    { name: '检测台 C-03', status: '运行中', color: 'emerald' },
-                    { name: '包装线 D-01', status: '维护中', color: 'rose' },
-                  ]"
-                  :key="device.name"
-                  class="flex items-center justify-between"
-                >
+              <div v-if="summary.devices?.length" class="mt-6 space-y-5">
+                <div v-for="device in (summary.devices ?? [])" :key="device.id" class="flex items-center justify-between">
                   <div class="flex items-center gap-3">
-                    <span
-                      class="h-2.5 w-2.5 rounded-full"
-                      :class="`bg-${device.color}-500`"
-                    ></span
-                    ><span class="text-sm">{{ device.name }}</span>
+                    <span class="h-2.5 w-2.5 rounded-full" :class="statusDotClass(device.status)"></span>
+                    <span class="text-sm">{{ device.name }} <span class="text-xs text-slate-400">{{ device.code }}</span></span>
                   </div>
-                  <span class="text-xs text-slate-400">{{
-                    device.status
-                  }}</span>
+                  <span class="text-xs text-slate-400">{{ device.status }}</span>
                 </div>
               </div>
+              <p v-else class="mt-6 text-sm text-slate-400">暂无设备数据，请先在设备管理中创建设备。</p>
             </div>
           </div></template
         >

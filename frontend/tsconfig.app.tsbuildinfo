@@ -1,0 +1,1 @@
+{"root":["./src/main.ts","./src/api/dashboard.ts","./src/api/devices.ts","./src/api/http.ts","./src/App.vue","./src/components/DevicePanel.vue"],"version":"5.7.3"}
