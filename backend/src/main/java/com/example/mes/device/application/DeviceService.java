@@ -38,10 +38,19 @@ public class DeviceService {
      * @param status 设备状态过滤条件，可为空
      * @param page 页码，从 0 开始
      * @param size 每页数量
+     * @param sortBy 排序字段
+     * @param direction 排序方向
      * @return 设备分页响应
      */
-    public PageResponse<DeviceResponse> page(String keyword, String status, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+    public PageResponse<DeviceResponse> page(String keyword, String status, int page, int size, String sortBy, String direction) {
+        String property = switch (sortBy == null ? "id" : sortBy.toLowerCase()) {
+            case "code" -> "code";
+            case "name" -> "name";
+            case "status" -> "status";
+            default -> "id";
+        };
+        Sort.Direction sortDirection = "asc".equalsIgnoreCase(direction) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, property));
         Page<Device> result = repository.search(keyword == null ? "" : keyword.trim(), status, pageable);
         return PageResponse.of(result.map(DeviceResponse::from).getContent(), page, size,
                 result.getTotalElements(), result.getTotalPages());

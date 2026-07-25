@@ -39,6 +39,8 @@ public class DeviceController {
      * @param status 设备状态，可为空
      * @param page 页码，从 0 开始
      * @param size 每页最大 100 条
+     * @param sortBy 排序字段，可选 id、code、name、status
+     * @param direction 排序方向，可选 asc 或 desc
      * @return 设备分页响应
      */
     @GetMapping
@@ -46,8 +48,10 @@ public class DeviceController {
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        return ApiResponse.ok(service.page(keyword, status, page, size));
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction) {
+        return ApiResponse.ok(service.page(keyword, status, page, size, sortBy, direction));
     }
 
     /**
