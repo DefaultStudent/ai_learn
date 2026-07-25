@@ -38,7 +38,7 @@ public class ApprovalController {
      * @return 创建后的审批申请
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','ADMIN','PRODUCTION_MANAGER','DEVICE_MANAGER')")
+    @PreAuthorize("hasAuthority('PERM_APPROVAL_SUBMIT')")
     public ApiResponse<ApprovalRequest> submit(
             @Valid @RequestBody ApprovalSubmitRequest request,
             Authentication authentication) {
@@ -55,7 +55,7 @@ public class ApprovalController {
      * @return 全部审批申请
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','ADMIN')")
+    @PreAuthorize("hasAuthority('PERM_APPROVAL_REVIEW')")
     public ApiResponse<List<ApprovalRequest>> list() {
         return ApiResponse.ok(service.list());
     }
@@ -81,7 +81,7 @@ public class ApprovalController {
      * @return 更新后的审批申请
      */
     @PostMapping("/{id}/review")
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','ADMIN')")
+    @PreAuthorize("hasAuthority('PERM_APPROVAL_REVIEW')")
     public ApiResponse<ApprovalRequest> review(
             @PathVariable Long id,
             @RequestBody ReviewRequest request,

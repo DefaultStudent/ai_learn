@@ -1,12 +1,12 @@
 package com.example.mes.user.application;
 
 import com.example.mes.common.exception.ResourceNotFoundException;
+import com.example.mes.security.RolePermissionMapper;
 import com.example.mes.user.api.UserDtos.LoginResponse;
 import com.example.mes.user.api.UserDtos.UserRequest;
 import com.example.mes.user.domain.AppUser;
 import com.example.mes.user.infrastructure.UserRepository;
 import java.util.List;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -42,11 +42,14 @@ public class UserService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         AppUser user = repository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException(username));
-        return User.withUsername(user.getUsername())
-                .password(user.getPasswordHash())
-                .roles(user.getRole().name())
-                .disabled(!user.isEnabled())
-                .build();
+        return new org.springframework.security.core.userdetails.User(
+                user.getUsername(),
+                user.getPasswordHash(),
+                user.isEnabled(),
+                true,
+                true,
+                true,
+                RolePermissionMapper.authoritiesFor(user.getRole()));
     }
 
     /**

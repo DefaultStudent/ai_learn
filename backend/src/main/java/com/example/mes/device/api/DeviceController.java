@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** 设备管理 REST API：只负责 HTTP 参数校验和调用应用服务。 */
 @RestController
 @RequestMapping("/api/devices")
-@PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'ADMIN', 'DEVICE_MANAGER', 'DEVICE_USER')")
+@PreAuthorize("hasAuthority('PERM_DEVICE_VIEW')")
 public class DeviceController {
     private final DeviceService service;
 
@@ -84,7 +84,7 @@ public class DeviceController {
      * @return 更新后的设备
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PERM_DEVICE_MANAGE')")
     public ApiResponse<DeviceResponse> update(@PathVariable Long id, @Valid @RequestBody DeviceRequest request) {
         return ApiResponse.ok(service.update(id, request));
     }
@@ -96,7 +96,7 @@ public class DeviceController {
      * @return 更新后的设备
      */
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PERM_DEVICE_MANAGE')")
     public ApiResponse<DeviceResponse> changeStatus(@PathVariable Long id, @Valid @RequestBody StatusRequest request) {
         return ApiResponse.ok(service.changeStatus(id, request.status()));
     }
@@ -107,7 +107,7 @@ public class DeviceController {
      */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PERM_DEVICE_MANAGE')")
     public void delete(@PathVariable Long id) {
         service.delete(id);
     }

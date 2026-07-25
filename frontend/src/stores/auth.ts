@@ -4,11 +4,15 @@ import { currentUser, login, logout, type CurrentUser, type LoginForm } from '@/
 export const useAuthStore = defineStore('auth', {
   state: () => ({ user: null as CurrentUser | null, ready: false }),
   getters: {
-    isSystemAdmin: (state) => state.user?.role === 'SYSTEM_ADMIN',
-    canManageDevices: (state) => ['SYSTEM_ADMIN', 'ADMIN'].includes(state.user?.role ?? ''),
-    canProposeDeviceChanges: (state) => state.user?.role === 'DEVICE_MANAGER',
-    canViewDevices: (state) => ['SYSTEM_ADMIN', 'ADMIN', 'DEVICE_MANAGER', 'DEVICE_USER'].includes(state.user?.role ?? ''),
-    canViewProduction: (state) => ['SYSTEM_ADMIN', 'ADMIN', 'PRODUCTION_MANAGER', 'PRODUCTION_USER'].includes(state.user?.role ?? ''),
+    hasPermission: (state) => (permission: string): boolean => state.user?.permissions.includes(permission) ?? false,
+    isSystemAdmin: (state): boolean => state.user?.permissions.includes('USER_MANAGE') === true && state.user?.permissions.includes('SYSTEM_LOG_VIEW') === true,
+    canManageDevices: (state): boolean => state.user?.permissions.includes('DEVICE_MANAGE') === true,
+    canProposeDeviceChanges: (state): boolean => state.user?.permissions.includes('DEVICE_PROPOSE') === true,
+    canViewDevices: (state): boolean => state.user?.permissions.includes('DEVICE_VIEW') === true,
+    canViewProduction: (state): boolean => state.user?.permissions.includes('PRODUCTION_VIEW') === true,
+    canReviewApprovals: (state): boolean => state.user?.permissions.includes('APPROVAL_REVIEW') === true,
+    canSubmitApprovals: (state): boolean => state.user?.permissions.includes('APPROVAL_SUBMIT') === true,
+    canViewMyApprovals: (state): boolean => state.user?.permissions.includes('APPROVAL_MINE') === true,
   },
   actions: {
     async restore() { try { this.user = await currentUser(); return true } catch { this.user = null; return false } finally { this.ready = true } },

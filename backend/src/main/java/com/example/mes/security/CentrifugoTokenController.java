@@ -30,7 +30,8 @@ public class CentrifugoTokenController {
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<String> token(Authentication authentication) {
         List<String> channels = new ArrayList<>(List.of("approval:requester:" + authentication.getName()));
-        boolean canReview = authentication.getAuthorities().stream().anyMatch(authority -> authority.getAuthority().equals("ROLE_SYSTEM_ADMIN") || authority.getAuthority().equals("ROLE_ADMIN"));
+        boolean canReview = authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("PERM_APPROVAL_REVIEW"));
         if (canReview) channels.add("approval:admins");
         String token = JWT.create().withSubject(authentication.getName()).withClaim("channels", channels).withExpiresAt(Instant.now().plusSeconds(3600)).sign(algorithm);
         return ApiResponse.ok(token);

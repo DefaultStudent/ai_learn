@@ -1,5 +1,151 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0');
+@import "tailwindcss";
+@import "@nuxt/ui";
 
-@layer base { body { @apply text-slate-800 antialiased; } }
+:root {
+  /* Nuxt UI standalone Vite 项目不会自动读取 Nuxt app.config，这里显式提供语义色。 */
+  --ui-primary: #557d9f;
+  --ui-secondary: #6f9190;
+  --ui-success: #059669;
+  --ui-warning: #d97706;
+  --ui-error: #dc2626;
+  --ui-color-primary-50: #eef7fc;
+  --ui-color-primary-100: #dceefa;
+  --ui-color-primary-200: #c3ddea;
+  --ui-color-primary-300: #a4c5d8;
+  --ui-color-primary-400: #7fa7bf;
+  --ui-color-primary-500: #668eaa;
+  --ui-color-primary-600: #557d9f;
+  --ui-color-primary-700: #466982;
+  --ui-color-primary-800: #3b576a;
+  --ui-color-primary-900: #344b5b;
+  --ui-color-primary-950: #263640;
+  --ui-color-secondary-50: #f0f7f6;
+  --ui-color-secondary-500: #789b9a;
+  --ui-color-secondary-600: #6f9190;
+  --ui-radius: 0.75rem;
+  /* Nuxt UI primitives inherit these tokens for cards, menus, tables and dividers. */
+  --ui-border: #cbdce5;
+  --ui-border-muted: #e5eef3;
+  --ui-border-accented: #b8cfdb;
+  --ui-border-inverted: #ffffff;
+  --ui-bg: #f7fbfd;
+  --ui-bg-muted: #edf5f8;
+  --ui-bg-elevated: #fafdff;
+}
+
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-weight: 400;
+  font-style: normal;
+  font-size: 1.25rem;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'liga';
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+@layer base {
+  body {
+    @apply bg-default text-default antialiased;
+    background-image: radial-gradient(circle at 0% 0%, rgb(207 229 242 / 0.60), transparent 34rem), radial-gradient(circle at 100% 100%, rgb(224 239 237 / 0.52), transparent 32rem);
+    background-attachment: fixed;
+  }
+}
+
+/* 应用级背景层：为内容、导航和卡片建立柔和的色彩层次。 */
+.mes-workspace {
+  background: linear-gradient(135deg, #e8f1f6 0%, #f1f6f8 48%, #e8f1ef 100%);
+}
+
+.mes-login {
+  background:
+    radial-gradient(circle at 15% 12%, rgb(184 219 234 / 0.72), transparent 28rem),
+    radial-gradient(circle at 92% 88%, rgb(198 225 216 / 0.68), transparent 30rem),
+    #edf4f7;
+}
+
+.mes-card {
+  background: linear-gradient(145deg, #fafdff 0%, #f2f7fa 100%);
+  border: 1px solid rgb(184 204 217 / 0.88);
+  box-shadow: 0 16px 34px rgb(72 105 127 / 0.12), 0 3px 7px rgb(72 105 127 / 0.07);
+}
+
+.mes-tone-primary { background: #e3f0f7; color: #557d9f; }
+.mes-tone-success { background: #e3f3ed; color: #41816a; }
+.mes-tone-warning { background: #f7f0df; color: #a47b39; }
+.mes-tone-secondary { background: #e8f0ef; color: #648b89; }
+
+/* Shared dividers stay quiet and tactile instead of reading as hard black rules. */
+.border-default {
+  border-color: rgb(203 218 228 / 0.72) !important;
+}
+
+.border-t.border-default,
+.border-b.border-default,
+.border-r.border-default,
+.border-l.border-default {
+  box-shadow: 0 1px 3px rgb(91 126 151 / 0.06);
+}
+
+/* Nuxt UI renders table/card borders through data slots, so cover those internals too. */
+[data-slot="card"],
+[data-slot="table"],
+[data-slot="root"] {
+  border-color: rgb(203 218 228 / 0.72) !important;
+}
+
+[data-slot="card"] {
+  background-color: #f7fbfd;
+  border-color: rgb(184 204 217 / 0.88) !important;
+  box-shadow: 0 12px 28px rgb(72 105 127 / 0.10), 0 2px 6px rgb(72 105 127 / 0.06);
+}
+
+[data-slot="table"] {
+  background-color: #f7fbfd;
+  border-color: rgb(184 204 217 / 0.88) !important;
+  box-shadow: 0 8px 20px rgb(72 105 127 / 0.07);
+}
+
+[data-slot="tbody"] {
+  background-color: #fafdff;
+}
+
+[data-slot="tr"]:nth-child(even) {
+  background-color: rgb(235 244 249 / 0.42);
+}
+
+[data-slot="th"],
+[data-slot="td"],
+[data-slot="tr"] {
+  border-color: rgb(211 224 232 / 0.65) !important;
+}
+
+[data-slot="th"] {
+  background-color: #e5f0f6 !important;
+  color: #557083;
+}
+
+/* Final guardrail for Nuxt UI's generated divider utilities. No hard black rules in the app shell. */
+.mes-workspace [class*="border-b"],
+.mes-workspace [class*="border-t"],
+.mes-workspace [class*="border-r"],
+.mes-workspace [class*="border-l"],
+.mes-workspace [data-slot="header"],
+.mes-workspace [data-slot="separator"],
+[data-slot="content"],
+[data-slot="separator"] {
+  border-color: #cbdce5 !important;
+}
+
+[data-slot="content"] {
+  background-color: #fafdff !important;
+  box-shadow: 0 16px 34px rgb(72 105 127 / 0.14) !important;
+}

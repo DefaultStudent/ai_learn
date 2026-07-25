@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** 系统日志查询 API，仅系统管理员可访问。 */
 @RestController
 @RequestMapping("/api/logs")
-@PreAuthorize("hasRole('SYSTEM_ADMIN')")
+@PreAuthorize("hasAuthority('PERM_SYSTEM_LOG_VIEW')")
 public class SystemLogController {
     private final SystemLogRepository repository;
     /** @param repository 系统日志仓储 */
