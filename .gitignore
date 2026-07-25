@@ -5,3 +5,5 @@ target/
 .idea/
 *.iml
 .env
+backend/logs/mes-backend.log
+backend/src/main/resources/application.yml

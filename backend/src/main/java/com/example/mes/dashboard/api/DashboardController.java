@@ -44,13 +44,6 @@ public class DashboardController {
             int todayOutput,
             double qualityRate,
             List<DeviceResponse> devices) {
-        /**
-         * @param activeOrders 进行中的工单数量
-         * @param onlineDevices 在线设备数量
-         * @param todayOutput 今日产量
-         * @param qualityRate 一次合格率百分比
-         * @param devices 主页展示的最近设备状态
-         */
         public Summary { }
     }
 }
