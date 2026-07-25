@@ -1,0 +1,31 @@
+spring:
+  config:
+    activate:
+      # 仅在 spring.profiles.active=deploy 时加载本文件。
+      on-profile: deploy
+  datasource:
+    # 部署环境必须通过环境变量指定数据库地址和凭据，默认值仅用于本地演练。
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:mes}
+    username: ${DB_USER:mes}
+    password: ${DB_PASSWORD:change-me}
+  jpa:
+    hibernate:
+      # 部署环境保留自动更新以兼容当前学习项目；正式生产建议切换为 validate 并使用迁移工具。
+      ddl-auto: ${JPA_DDL_AUTO:update}
+  data:
+    redis:
+      # 部署环境使用环境变量连接 Redis 服务名或远程地址。
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+  rabbitmq:
+    # 部署环境使用环境变量连接 RabbitMQ 服务名或远程地址。
+    host: ${MQ_HOST:rabbitmq}
+    port: ${MQ_PORT:5672}
+    username: ${MQ_USER:mes}
+    password: ${MQ_PASSWORD:change-me}
+
+mes:
+  realtime:
+    centrifugo:
+      # 部署环境通过服务名或网关地址访问 Centrifugo。
+      url: ${CENTRIFUGO_URL:http://centrifugo:8000}

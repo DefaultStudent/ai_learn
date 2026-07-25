@@ -28,7 +28,8 @@ public class Device {
     private String status = "OFFLINE";
 
     /** JPA 使用的无参构造器。 */
-    protected Device() {}
+    protected Device() {
+    }
 
     /**
      * 创建设备实体。
@@ -54,14 +55,24 @@ public class Device {
      * 由管理接口或遥测接入更新设备状态。
      * @param status 新的设备状态
      */
-    public void changeStatus(String status) { this.status = status; }
+    public void changeStatus(String status) {
+        this.status = status;
+    }
 
     /** @return 设备主键 */
-    public Long getId() { return id; }
+    public Long getId() {
+        return id;
+    }
     /** @return 设备编码 */
-    public String getCode() { return code; }
+    public String getCode() {
+        return code;
+    }
     /** @return 设备名称 */
-    public String getName() { return name; }
+    public String getName() {
+        return name;
+    }
     /** @return 设备当前状态 */
-    public String getStatus() { return status; }
+    public String getStatus() {
+        return status;
+    }
 }

@@ -12,5 +12,7 @@ public record ApiResponse<T>(T data, String message) {
      * @param <T> 数据类型
      * @return 统一成功响应
      */
-    public static <T> ApiResponse<T> ok(T data) { return new ApiResponse<>(data, "OK"); }
+    public static <T> ApiResponse<T> ok(T data) {
+        return new ApiResponse<>(data, "OK");
+    }
 }

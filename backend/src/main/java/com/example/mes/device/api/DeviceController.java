@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** 设备管理 REST API：只负责 HTTP 参数校验和调用应用服务。 */
 @RestController
 @RequestMapping("/api/devices")
+@PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'ADMIN', 'DEVICE_MANAGER', 'DEVICE_USER')")
 public class DeviceController {
     private final DeviceService service;
 
@@ -82,6 +84,7 @@ public class DeviceController {
      * @return 更新后的设备
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'ADMIN')")
     public ApiResponse<DeviceResponse> update(@PathVariable Long id, @Valid @RequestBody DeviceRequest request) {
         return ApiResponse.ok(service.update(id, request));
     }
@@ -93,6 +96,7 @@ public class DeviceController {
      * @return 更新后的设备
      */
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'ADMIN')")
     public ApiResponse<DeviceResponse> changeStatus(@PathVariable Long id, @Valid @RequestBody StatusRequest request) {
         return ApiResponse.ok(service.changeStatus(id, request.status()));
     }
@@ -103,6 +107,7 @@ public class DeviceController {
      */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'ADMIN')")
     public void delete(@PathVariable Long id) {
         service.delete(id);
     }

@@ -2,9 +2,9 @@ package com.example.mes.api;
 
 import com.example.mes.common.api.ApiResponse;
 import com.example.mes.common.exception.ResourceNotFoundException;
+import com.example.mes.common.logging.AuditLog;
+import org.springframework.security.access.AccessDeniedException;
 import jakarta.validation.ConstraintViolationException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,7 +16,6 @@ import java.util.stream.Collectors;
 /** 全局 REST 异常适配器，保证所有模块返回一致的 ApiResponse 结构。 */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    private static final Logger log = LogManager.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -55,16 +54,24 @@ public class GlobalExceptionHandler {
         return new ApiResponse<>(null, exception.getMessage());
     }
 
+    /**
+     * @param exception 权限拒绝异常
+     * @return 统一的 403 错误响应
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiResponse<Void> forbidden(AccessDeniedException exception) { return new ApiResponse<>(null, "没有访问该资源的权限"); }
+
     /** 未预期异常只返回安全提示，详细堆栈写入服务端日志。 */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @AuditLog(module = "api", action = "REST_ERROR", level = "ERROR")
     /**
      * 兜底处理未预期异常。
      * @param exception 未预期的服务端异常
      * @return 不暴露内部堆栈的 500 错误响应
      */
     public ApiResponse<Void> internalError(Exception exception) {
-        log.error("Unhandled REST exception", exception);
         return new ApiResponse<>(null, "服务器内部错误");
     }
 }

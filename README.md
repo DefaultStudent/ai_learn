@@ -50,6 +50,12 @@
 
 后端使用 Log4j2 输出 UTF-8 控制台日志和滚动文件日志，文件默认写入 `backend/logs/mes-backend.log`。设备创建、更新、状态变更和删除等关键操作会通过 `SystemLogService` 写入 PostgreSQL 的 `mes_system_log` 表；该日志使用独立事务，业务回滚时仍保留审计记录。日志中禁止写入密码、Token 等敏感信息。
 
+## 用户与权限
+
+系统使用 Spring Security 服务器会话认证，前台每次重新打开都会回到登录页。系统管理员可见用户管理和系统日志；管理员拥有业务权限但前台用户管理入口仅系统管理员显示；生产/设备普通用户只读对应部门页面。
+
+学习环境默认账号：`sysadmin/sysadmin123`、`admin/admin123`、`device_manager/device123`、`device_user/device123`、`production_manager/production123`、`production_user/production123`。首次启动会以 BCrypt 哈希写入数据库，生产环境请立即修改或移除默认账号。
+
 ## 目录约定
 
 每个业务层与模块都带有自己的 `AGENTS.md`，其中记录职责、依赖方向、接口约定和扩展规则。修改代码前请先阅读所在目录及父目录的文档。

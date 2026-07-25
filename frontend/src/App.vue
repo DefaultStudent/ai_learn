@@ -1,218 +1,103 @@
 <script setup lang="ts">
-// 学习用单页入口：包含侧边导航、指标卡片、生产节拍和设备状态概览。
-import { onMounted, ref, watch } from "vue";
-import { getDashboardSummary, type DashboardSummary } from "./api/dashboard";
-import DevicePanel from "./components/DevicePanel.vue";
-const active = ref("dashboard");
-const loading = ref(true);
-const summary = ref<DashboardSummary>({
-  activeOrders: 0,
-  onlineDevices: 0,
-  todayOutput: 0,
-  qualityRate: 0,
-  devices: [],
-});
-const statusDotClass = (status: string) => status === "ONLINE" ? "bg-emerald-500" : status === "IDLE" ? "bg-amber-500" : "bg-slate-400";
-const nav = [
-  { key: "dashboard", label: "生产总览", icon: "▦" },
-  { key: "orders", label: "生产工单", icon: "▤" },
-  { key: "devices", label: "设备管理", icon: "◉" },
-];
-// 切换菜单时更新视图 key，确保页面分支和组件状态同步刷新。
-const selectNav = (key: string) => { active.value = key; };
-const loadSummary = async () => {
-  loading.value = true;
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { getDashboardSummary, type DashboardSummary } from './api/dashboard'
+import { listApprovals, type ApprovalRequest } from './api/approvals'
+import { getApprovalRealtimeToken } from './api/realtime'
+import { useAuthStore } from './stores/auth'
+import AppHeader from './components/AppHeader.vue'
+import AppSidebar, { type NavItem } from './components/AppSidebar.vue'
+import ApprovalPanel from './components/ApprovalPanel.vue'
+import DashboardOverview from './components/DashboardOverview.vue'
+import DevicePanel from './components/DevicePanel.vue'
+import LogPanel from './components/LogPanel.vue'
+import LoginPanel from './components/LoginPanel.vue'
+import ModalDialog from './components/ModalDialog.vue'
+import UserPanel from './components/UserPanel.vue'
+import { connectApprovalRealtime, type ApprovalRealtimeEvent } from './realtime/approvalRealtime'
+
+const auth = useAuthStore()
+const sessionReady = ref(false)
+const active = ref('dashboard')
+const loading = ref(true)
+const summary = ref<DashboardSummary>({ activeOrders: 0, onlineDevices: 0, todayOutput: 0, qualityRate: 0, devices: [] })
+const pendingApprovals = ref<ApprovalRequest[]>([])
+const approvalNoticeOpen = ref(false)
+const knownPendingApprovalIds = ref<Set<number>>(new Set())
+const lastApprovalEvent = ref<ApprovalRealtimeEvent | null>(null)
+let closeApprovalRealtime: (() => void) | undefined
+
+const nav = computed<NavItem[]>(() => {
+  const items: NavItem[] = [{ key: 'dashboard', label: '生产总览', icon: '▦' }]
+  if (auth.canViewProduction) items.push({ key: 'orders', label: '生产工单', icon: '▤' })
+  if (auth.canViewDevices) items.push({ key: 'devices', label: '设备管理', icon: '◉' })
+  if (auth.isSystemAdmin) { items.push({ key: 'users', label: '用户管理', icon: '♙' }); items.push({ key: 'logs', label: '系统日志', icon: '≡' }) }
+  if (auth.user?.role === 'SYSTEM_ADMIN' || auth.user?.role === 'ADMIN') items.push({ key: 'approvals', label: '审批管理', icon: '✓' })
+  if (auth.user?.role === 'PRODUCTION_MANAGER' || auth.user?.role === 'DEVICE_MANAGER') items.push({ key: 'my-approvals', label: '我的申请', icon: '◷' })
+  return items
+})
+const activeTitle = computed(() => nav.value.find((item) => item.key === active.value)?.label ?? '生产总览')
+
+function resetView(): void { active.value = 'dashboard'; loading.value = false; summary.value = { activeOrders: 0, onlineDevices: 0, todayOutput: 0, qualityRate: 0, devices: [] } }
+async function signOut(): Promise<void> { resetView(); await auth.signOut() }
+async function loadSummary(): Promise<void> { loading.value = true; try { summary.value = await getDashboardSummary() } finally { loading.value = false } }
+async function loadPendingApprovals(showExisting: boolean = false): Promise<void> {
+  const canReview = auth.user?.role === 'SYSTEM_ADMIN' || auth.user?.role === 'ADMIN'
+  if (!canReview) { pendingApprovals.value = []; knownPendingApprovalIds.value = new Set(); approvalNoticeOpen.value = false; return }
   try {
-    summary.value = await getDashboardSummary();
-  } finally {
-    loading.value = false;
+    const currentPending = (await listApprovals()).filter((request) => request.status === 'PENDING')
+    const newRequestArrived = currentPending.some((request) => !knownPendingApprovalIds.value.has(request.id))
+    pendingApprovals.value = currentPending
+    knownPendingApprovalIds.value = new Set(currentPending.map((request) => request.id))
+    if (showExisting || newRequestArrived) approvalNoticeOpen.value = currentPending.length > 0
   }
-};
-onMounted(loadSummary);
-// 从设备管理返回生产总览时重新读取数据库，确保设备状态不是旧缓存。
-watch(active, (value) => {
-  if (value === "dashboard") loadSummary();
-});
+  catch { pendingApprovals.value = []; approvalNoticeOpen.value = false }
+}
+function handleApprovalEvent(event: ApprovalRealtimeEvent): void {
+  lastApprovalEvent.value = event
+  window.dispatchEvent(new CustomEvent<ApprovalRealtimeEvent>('approval-updated', { detail: event }))
+  if (auth.user?.role !== 'SYSTEM_ADMIN' && auth.user?.role !== 'ADMIN') return
+  if (event.status !== 'PENDING' || pendingApprovals.value.some((request) => request.id === event.id)) return
+  const request: ApprovalRequest = { id: event.id, requester: event.requester, module: event.module, action: event.action, payload: '', status: 'PENDING', reviewer: null, reviewRemark: null, createdAt: new Date().toISOString(), reviewedAt: null }
+  pendingApprovals.value = [...pendingApprovals.value, request]
+  knownPendingApprovalIds.value.add(event.id)
+  approvalNoticeOpen.value = true
+}
+async function startApprovalRealtime(): Promise<void> {
+  if (!auth.user) return
+  try {
+    const token = await getApprovalRealtimeToken()
+    if (!auth.user) return
+    closeApprovalRealtime = connectApprovalRealtime(token, handleApprovalEvent)
+  } catch { closeApprovalRealtime = undefined }
+}
+function openApprovalPage(): void { approvalNoticeOpen.value = false; active.value = 'approvals' }
+function handlePageShow(event: PageTransitionEvent): void { if (event.persisted) void signOut() }
+
+onMounted(async () => {
+  window.addEventListener('pageshow', handlePageShow)
+  closeApprovalRealtime = undefined
+  await signOut()
+  sessionReady.value = true
+})
+onBeforeUnmount(() => { window.removeEventListener('pageshow', handlePageShow); closeApprovalRealtime?.() })
+watch(active, (value) => { if (value === 'dashboard' && auth.user) void loadSummary() })
+watch(() => auth.user?.id, (userId) => {
+  closeApprovalRealtime?.()
+  closeApprovalRealtime = undefined
+  if (userId) {
+    void loadSummary()
+    void loadPendingApprovals(true)
+    void startApprovalRealtime()
+  } else { resetView(); pendingApprovals.value = []; knownPendingApprovalIds.value = new Set(); approvalNoticeOpen.value = false }
+})
 </script>
+
 <template>
-  <div class="min-h-screen bg-slate-50">
-    <aside
-      class="fixed inset-y-0 left-0 z-10 hidden w-64 border-r border-slate-200 bg-white lg:block"
-    >
-      <div class="flex h-20 items-center gap-3 border-b border-slate-100 px-7">
-        <div
-          class="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 font-bold text-white"
-        >
-          M
-        </div>
-        <div>
-          <p class="font-bold tracking-wide">MES FLOW</p>
-          <p class="text-xs text-slate-400">学习型制造执行系统</p>
-        </div>
-      </div>
-      <nav class="space-y-2 p-4">
-        <button
-          v-for="item in nav"
-          :key="item.key"
-          @click="selectNav(item.key)"
-          :class="
-            active === item.key
-              ? 'bg-indigo-50 text-indigo-700'
-              : 'text-slate-500 hover:bg-slate-50'
-          "
-          class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium"
-        >
-          <span class="text-lg">{{ item.icon }}</span
-          >{{ item.label }}
-        </button>
-      </nav>
-      <div class="absolute bottom-0 w-full border-t border-slate-100 p-5">
-        <p class="text-xs text-slate-400">系统状态</p>
-        <div class="mt-2 flex items-center gap-2 text-sm">
-          <span class="h-2 w-2 rounded-full bg-emerald-500"></span
-          >基础服务运行正常
-        </div>
-      </div>
-    </aside>
-    <main class="lg:ml-64">
-      <header
-        class="flex h-20 items-center justify-between border-b border-slate-200 bg-white px-6 lg:px-10"
-      >
-        <div>
-          <p class="text-sm text-slate-400">
-            制造执行 / {{ nav.find((item) => item.key === active)?.label }}
-          </p>
-          <h1 class="text-xl font-bold">
-            {{
-              active === "dashboard"
-                ? "生产运营总览"
-                : nav.find((item) => item.key === active)?.label
-            }}
-          </h1>
-        </div>
-        <div class="flex items-center gap-3">
-          <button
-            class="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-500"
-          >
-            帮助文档
-          </button>
-          <div
-            class="grid h-9 w-9 place-items-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700"
-          >
-            学
-          </div>
-        </div>
-      </header>
-      <section :key="active" class="space-y-7 p-6 lg:p-10">
-        <DevicePanel v-if="active === 'devices'" />
-        <div
-          v-else-if="active !== 'dashboard'"
-          class="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500"
-        >
-          {{
-            nav.find((item) => item.key === active)?.label
-          }}模块正在建设中，API 与模块文档已预留。
-        </div>
-        <template v-else
-          ><div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            <div
-              v-for="card in [
-                {
-                  label: '进行中工单',
-                  value: summary.activeOrders,
-                  unit: '张',
-                  color: 'indigo',
-                },
-                {
-                  label: '在线设备',
-                  value: summary.onlineDevices,
-                  unit: '台',
-                  color: 'emerald',
-                },
-                {
-                  label: '今日产量',
-                  value: summary.todayOutput,
-                  unit: '件',
-                  color: 'amber',
-                },
-                {
-                  label: '一次合格率',
-                  value: summary.qualityRate,
-                  unit: '%',
-                  color: 'violet',
-                },
-              ]"
-              :key="card.label"
-              class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <p class="text-sm text-slate-500">{{ card.label }}</p>
-              <div class="mt-3 flex items-end gap-2">
-                <span
-                  class="text-3xl font-bold"
-                  :class="`text-${card.color}-600`"
-                  >{{ loading ? "—" : card.value }}</span
-                ><span class="mb-1 text-sm text-slate-400">{{
-                  card.unit
-                }}</span>
-              </div>
-              <div class="mt-4 h-1.5 rounded-full bg-slate-100">
-                <div
-                  class="h-1.5 w-3/4 rounded-full"
-                  :class="`bg-${card.color}-500`"
-                ></div>
-              </div>
-            </div>
-          </div>
-          <div class="grid gap-6 xl:grid-cols-3">
-            <div
-              class="rounded-2xl border border-slate-200 bg-white p-6 xl:col-span-2"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <h2 class="font-bold">生产节拍</h2>
-                  <p class="mt-1 text-sm text-slate-400">今日各时段完成数量</p>
-                </div>
-                <span
-                  class="rounded-lg bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-600"
-                  >实时</span
-                >
-              </div>
-              <div
-                class="mt-8 flex h-48 items-end gap-3 border-b border-slate-100 px-3"
-              >
-                <div
-                  v-for="(height, index) in [
-                    35, 55, 45, 72, 63, 88, 76, 94, 68, 82, 73, 90,
-                  ]"
-                  :key="index"
-                  class="group flex flex-1 flex-col items-center gap-2"
-                >
-                  <div
-                    class="w-full rounded-t-md bg-indigo-500 transition hover:bg-indigo-700"
-                    :style="{ height: `${height}%` }"
-                  ></div>
-                  <span class="text-[10px] text-slate-400"
-                    >{{ index + 8 }}:00</span
-                  >
-                </div>
-              </div>
-            </div>
-            <div class="rounded-2xl border border-slate-200 bg-white p-6">
-              <h2 class="font-bold">设备状态</h2>
-              <div v-if="summary.devices?.length" class="mt-6 space-y-5">
-                <div v-for="device in (summary.devices ?? [])" :key="device.id" class="flex items-center justify-between">
-                  <div class="flex items-center gap-3">
-                    <span class="h-2.5 w-2.5 rounded-full" :class="statusDotClass(device.status)"></span>
-                    <span class="text-sm">{{ device.name }} <span class="text-xs text-slate-400">{{ device.code }}</span></span>
-                  </div>
-                  <span class="text-xs text-slate-400">{{ device.status }}</span>
-                </div>
-              </div>
-              <p v-else class="mt-6 text-sm text-slate-400">暂无设备数据，请先在设备管理中创建设备。</p>
-            </div>
-          </div></template
-        >
-      </section>
-    </main>
+  <div v-if="!sessionReady" class="grid min-h-screen place-items-center bg-slate-100 text-sm text-slate-400">正在准备登录环境...</div>
+  <LoginPanel v-else-if="!auth.user" />
+  <div v-else class="min-h-screen bg-slate-50">
+    <AppSidebar :items="nav" :active="active" @select="active = $event" />
+    <main class="lg:ml-64"><AppHeader :user="auth.user" :title="activeTitle" @logout="signOut" /><section class="space-y-7 p-6 lg:p-10"><DevicePanel v-if="active === 'devices'" :can-manage="auth.canManageDevices" :can-propose="auth.canProposeDeviceChanges" /><UserPanel v-else-if="active === 'users' && auth.isSystemAdmin" /><LogPanel v-else-if="active === 'logs' && auth.isSystemAdmin" /><ApprovalPanel v-else-if="active === 'approvals' && (auth.isSystemAdmin || auth.user.role === 'ADMIN')" :reviewable="true" /><ApprovalPanel v-else-if="active === 'my-approvals' && (auth.user.role === 'PRODUCTION_MANAGER' || auth.user.role === 'DEVICE_MANAGER')" :reviewable="false" /><div v-else-if="active !== 'dashboard'" class="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">{{ activeTitle }}模块正在建设中。</div><DashboardOverview v-else :summary="summary" :loading="loading" /></section></main>
   </div>
+  <ModalDialog :open="approvalNoticeOpen" title="待处理审批提醒" @close="approvalNoticeOpen = false"><div class="space-y-4"><p class="text-sm text-slate-600">当前有 {{ pendingApprovals.length }} 条申请等待处理。</p><div class="max-h-56 space-y-2 overflow-y-auto"><div v-for="request in pendingApprovals" :key="request.id" class="rounded-lg bg-slate-50 px-3 py-2 text-sm"><span class="font-medium">{{ request.requester }}</span><span class="mx-2 text-slate-400">·</span><span>{{ request.module }} / {{ request.action }}</span></div></div><div class="flex justify-end gap-3"><button type="button" @click="approvalNoticeOpen = false" class="rounded-lg border px-4 py-2 text-sm">稍后处理</button><button type="button" @click="openApprovalPage" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white">进入审批管理</button></div></div></ModalDialog>
 </template>

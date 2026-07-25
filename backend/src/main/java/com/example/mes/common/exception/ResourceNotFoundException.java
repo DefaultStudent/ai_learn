@@ -5,5 +5,7 @@ public class ResourceNotFoundException extends RuntimeException {
     /**
      * @param message 面向调用方的资源不存在描述
      */
-    public ResourceNotFoundException(String message) { super(message); }
+    public ResourceNotFoundException(String message) {
+        super(message);
+    }
 }

@@ -15,7 +15,9 @@ public class SystemLogService {
     /**
      * @param repository 系统日志仓储
      */
-    public SystemLogService(SystemLogRepository repository) { this.repository = repository; }
+    public SystemLogService(SystemLogRepository repository) {
+        this.repository = repository;
+    }
 
     /**
      * 记录一条关键操作日志。日志使用独立事务，避免业务事务回滚时丢失审计记录。

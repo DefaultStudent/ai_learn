@@ -20,7 +20,12 @@ public record PageResponse<T>(List<T> items, int page, int size, long total, int
      * @param <T> 列表元素类型
      * @return 分页响应对象
      */
-    public static <T> PageResponse<T> of(List<T> items, int page, int size, long total, int totalPages) {
+    public static <T> PageResponse<T> of(
+            List<T> items,
+            int page,
+            int size,
+            long total,
+            int totalPages) {
         return new PageResponse<>(items, page, size, total, totalPages);
     }
 }

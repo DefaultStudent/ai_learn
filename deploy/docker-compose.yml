@@ -19,10 +19,16 @@ services:
     image: rabbitmq:3.13-management-alpine
     environment: { RABBITMQ_DEFAULT_USER: mes, RABBITMQ_DEFAULT_PASS: mes }
     ports: ["5672:5672", "15672:15672"]
+  centrifugo:
+    image: centrifugo/centrifugo:v6
+    command: centrifugo -c /centrifugo/config.json
+    depends_on: [redis]
+    volumes: ["./centrifugo/config.json:/centrifugo/config.json:ro"]
+    ports: ["8000:8000"]
   nginx:
     # 统一入口：/api 转发到宿主机后端，其余请求转发到 frontend 容器。
     image: nginx:1.27-alpine
-    depends_on: [frontend, redis, rabbitmq]
+    depends_on: [frontend, redis, rabbitmq, centrifugo]
     ports: ["80:80"]
     volumes: ["./nginx/nginx.conf:/etc/nginx/nginx.conf:ro"]
 volumes:

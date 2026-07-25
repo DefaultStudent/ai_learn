@@ -1,34 +1,42 @@
 spring:
-  # 本机 PostgreSQL；账号密码可通过 DB_USER/DB_PASSWORD 环境变量覆盖。
-  application.name: mes-backend
-  datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:postgres}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:}
+  # 只修改这一项即可切换环境：dev=开发配置，deploy=部署配置。
+  profiles:
+    active: dev
+  application:
+    # 应用名称用于日志、监控和 Spring Boot 服务识别。
+    name: mes-backend
   jpa:
-    # 学习环境自动增量建表；生产环境请改用 Flyway/Liquibase。
-    hibernate:
-      ddl-auto: update
     properties:
       hibernate:
+        # 开发阶段保留格式化 SQL，便于学习和排查数据库问题。
         format_sql: true
-    open-in-view: false
-  data.redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
-  rabbitmq:
-    host: ${MQ_HOST:localhost}
-    port: ${MQ_PORT:5672}
-    username: ${MQ_USER:mes}
-    password: ${MQ_PASSWORD:}
-server.port: 8080
+
+server:
+  # 两套环境都使用同一个 API 端口，反向代理和前端无需跟随环境切换。
+  port: ${SERVER_PORT:8080}
+
 logging:
-  # 具体输出格式和文件滚动由 log4j2-spring.xml 管理，这里只管理级别。
+  # 项目日志保持 INFO，SQL 和 Spring 框架日志降低噪声。
   level:
     com.example.mes: INFO
     org.hibernate.SQL: WARN
     org.springframework: INFO
+
 mes:
-  # 设备遥测接入端口，不与 Spring MVC HTTP 端口冲突。
-  netty.port: ${NETTY_PORT:9000}
-  mq.production-events: mes.production.events
+  auth:
+    # 权限服务类型由环境配置覆盖，local 用于本地数据库用户，remote 用于外部权限服务。
+    provider: ${AUTH_PROVIDER:local}
+    external:
+      base-url: ${AUTH_SERVICE_URL:http://localhost:8090}
+      login-path: ${AUTH_SERVICE_LOGIN_PATH:/api/permissions/login}
+  realtime:
+    centrifugo:
+      # JWT 和 API Key 必须通过环境变量覆盖，禁止提交生产密钥。
+      api-key: ${CENTRIFUGO_API_KEY:mes-realtime-api-key}
+      token-secret: ${CENTRIFUGO_TOKEN_SECRET:mes-learning-dev-secret-change-me}
+  netty:
+    # Netty 设备遥测服务端口。
+    port: ${NETTY_PORT:9000}
+  mq:
+    # 生产事件队列名称由代码和部署配置共同使用。
+    production-events: mes.production.events

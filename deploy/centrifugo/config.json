@@ -1,0 +1,25 @@
+{
+  "http_api": {
+    "key": "mes-realtime-api-key"
+  },
+  "client": {
+    "allowed_origins": ["http://localhost", "http://localhost:80", "http://localhost:5173"],
+    "token": {
+      "hmac_secret_key": "mes-learning-dev-secret-change-me"
+    }
+  },
+  "channel": {
+    "namespaces": [
+      {
+        "name": "approval",
+        "allow_subscribe_for_client": true
+      }
+    ]
+  },
+  "engine": {
+    "type": "redis",
+    "redis": {
+      "address": "redis:6379"
+    }
+  }
+}
